@@ -38,53 +38,31 @@ def build_grading_messages(
         )
     ).strip()
 
-    objective_lines = []
-    if objective_features:
-        objective_lines.append(
-            f"- Word count: {objective_features.get('word_count', '-')}; "
-            f"sentences: {objective_features.get('sentence_count', '-')}; "
-            f"average sentence length: {objective_features.get('average_sentence_length', '-')}"
-        )
-        for metric in objective_features.get("metrics", []):
-            objective_lines.append(
-                f"- {metric.get('label_en')} ({metric.get('label_zh')}): "
-                f"value={metric.get('value')}, per_sentence={metric.get('per_sentence')}"
-            )
-
     user_prompt = f"""
 Score the essay using this rubric.
 
 Rubric:
 {chr(10).join(rubric_lines)}
 
-Objective linguistic features from the Herbold et al. computational analysis:
-{chr(10).join(objective_lines) if objective_lines else 'No objective features provided.'}
-
 Scoring rules:
 - Treat the topic as: "{topic or 'Topic not provided'}"
 - Use only whole or half scores between 0 and 6.
 - Be strict but fair.
 - Output exactly the seven criteria below.
-- Include concise Chinese feedback for the student.
-- In the final comments, synthesize the objective linguistic features, your subjective rubric scores, and your overall impression.
-- Keep reason and improvement fields short and actionable.
 - Do not include markdown, code fences, or text outside JSON.
 - Return valid compact JSON only.
 
 Required JSON shape:
 {{
-  "summary": "用中文概括作文主要表现。",
-  "overall_judgment": "用中文给出总体评价。",
   "criteria": [
-    {{"key":"topic_and_completeness","score":4.5,"reason":"中文理由","improvement":"中文建议"}},
-    {{"key":"logic_and_composition","score":4.5,"reason":"中文理由","improvement":"中文建议"}},
-    {{"key":"expressiveness_and_comprehensibility","score":4.5,"reason":"中文理由","improvement":"中文建议"}},
-    {{"key":"language_mastery","score":4.5,"reason":"中文理由","improvement":"中文建议"}},
-    {{"key":"complexity","score":4.5,"reason":"中文理由","improvement":"中文建议"}},
-    {{"key":"vocabulary_and_text_linking","score":4.5,"reason":"中文理由","improvement":"中文建议"}},
-    {{"key":"language_constructs","score":4.5,"reason":"中文理由","improvement":"中文建议"}}
-  ],
-  "global_suggestions": ["中文建议1", "中文建议2", "中文建议3"]
+    {{"key":"topic_and_completeness","score":4.5}},
+    {{"key":"logic_and_composition","score":4.5}},
+    {{"key":"expressiveness_and_comprehensibility","score":4.5}},
+    {{"key":"language_mastery","score":4.5}},
+    {{"key":"complexity","score":4.5}},
+    {{"key":"vocabulary_and_text_linking","score":4.5}},
+    {{"key":"language_constructs","score":4.5}}
+  ]
 }}
 
 Essay:
@@ -210,8 +188,6 @@ def validate_grade_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 "label_zh": CRITERIA_BY_KEY[key]["label_zh"],
                 "label_en": CRITERIA_BY_KEY[key]["label_en"],
                 "score": score,
-                "reason": str(item.get("reason", "")).strip(),
-                "improvement": str(item.get("improvement", "")).strip(),
             }
         )
         seen_keys.add(key)
@@ -323,21 +299,15 @@ def mock_grade(essay_text: str, topic: str, teacher_config: dict[str, Any]) -> d
                 "label_zh": item["label_zh"],
                 "label_en": item["label_en"],
                 "score": score,
-                "reason": "Mock grading based on length, structure, and lexical signals.",
-                "improvement": "Use a live model provider for research-grade feedback.",
             }
         )
 
     overall = round(mean(item["score"] for item in criteria), 2)
     return {
-        "summary": "Mock grading result for local smoke testing.",
-        "overall_judgment": f"Estimated overall quality: {overall}/6.",
+        "summary": "",
+        "overall_judgment": "",
         "criteria": criteria,
-        "global_suggestions": [
-            "Connect claims and evidence more explicitly.",
-            "Tighten paragraph structure around one argument each.",
-            "Use a live grader for publication-quality evaluation.",
-        ],
+        "global_suggestions": [],
         "overall_score": overall,
     }
 
@@ -481,8 +451,7 @@ def build_chat_messages(
     if grade_result:
         for item in grade_result.get("criteria", []):
             criteria_lines.append(
-                f"- {item.get('label_zh', item.get('key'))}: {item.get('score')}/6; "
-                f"理由: {item.get('reason', '')}; 建议: {item.get('improvement', '')}"
+                f"- {item.get('label_zh', item.get('key'))}: {item.get('score')}/6"
             )
 
     context = f"""

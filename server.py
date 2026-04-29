@@ -40,6 +40,77 @@ def _load_study_config() -> dict:
     }
 
 
+def _metric_by_key(objective: dict, key: str) -> dict:
+    for metric in objective.get("metrics", []):
+        if metric.get("key") == key:
+            return metric
+    return {}
+
+
+def _score_band(score: float) -> str:
+    if score >= 5:
+        return "较强"
+    if score >= 4:
+        return "稳定"
+    if score >= 3:
+        return "有基础但仍需打磨"
+    return "需要优先加强"
+
+
+def build_writing_guidance(essay_text: str, topic: str, objective: dict, aggregate: dict) -> str:
+    criteria = aggregate.get("criteria", [])
+    sorted_criteria = sorted(criteria, key=lambda item: float(item.get("score", 0)))
+    weakest = sorted_criteria[:2]
+    strongest = sorted_criteria[-2:][::-1]
+
+    lexical = _metric_by_key(objective, "lexical_diversity_mtld")
+    discourse = _metric_by_key(objective, "discourse_markers")
+    clauses = _metric_by_key(objective, "syntactic_complexity_clauses")
+    modals = _metric_by_key(objective, "modals")
+    word_count = objective.get("word_count", 0)
+    sentence_count = objective.get("sentence_count", 0)
+    avg_sentence = objective.get("average_sentence_length", 0)
+    overall = float(aggregate.get("overall_score", 0))
+
+    if word_count < 160:
+        length_note = "篇幅偏短，观点容易显得概括，需要增加例证和解释。"
+    elif word_count > 320:
+        length_note = "篇幅较充分，下一步重点是压缩重复表达、提高论证密度。"
+    else:
+        length_note = "篇幅基本适中，可以把精力放在论证层次和语言精确度上。"
+
+    if float(discourse.get("value", 0) or 0) <= 2:
+        cohesion_note = "语篇标记语偏少，段落之间可以增加 therefore、however、moreover 等衔接。"
+    else:
+        cohesion_note = "文章已经使用了一些衔接表达，后续要避免机械堆叠连接词。"
+
+    if float(clauses.get("per_sentence", 0) or 0) < 0.5:
+        syntax_note = "句式复杂度偏低，可以加入让步、原因、条件等从句来提升表达层次。"
+    else:
+        syntax_note = "句式有一定变化，注意复杂句不要牺牲清晰度。"
+
+    strongest_text = "、".join(
+        f"{item.get('label_zh')}（{item.get('score')}/6）" for item in strongest
+    ) or "暂未形成明显优势维度"
+    weakest_text = "、".join(
+        f"{item.get('label_zh')}（{item.get('score')}/6）" for item in weakest
+    ) or "暂未发现明显短板"
+
+    return f"""我先给出一版写作指导，后面你可以继续追问某一段怎么改。
+
+整体判断：这篇作文的七维平均分为 {overall}/6，整体处于“{_score_band(overall)}”区间。文章主题是“{topic or '未提供题目'}”，目前内容围绕主题展开较清楚，但还可以在论证深度、衔接方式和语言变化上继续提升。
+
+七维评分观察：相对优势是 {strongest_text}；优先改进项是 {weakest_text}。建议你下一轮修改时先处理最低的两个维度，而不是平均用力。
+
+客观特征观察：全文约 {word_count} 词、{sentence_count} 句，平均句长约 {avg_sentence} 词。词汇多样性 MTLD 为 {lexical.get('value', '-')}，情态动词数量为 {modals.get('value', '-')}，语篇标记语数量为 {discourse.get('value', '-')}。{length_note}{cohesion_note}{syntax_note}
+
+具体建议：
+1. 每个主体段保留一个中心论点，并补上更具体的例子或原因链。
+2. 在段落开头和句间加入更自然的逻辑衔接，让读者看见“为什么这一点推出下一点”。
+3. 挑 2-3 个简单句改成包含 because、although、which、therefore 的复合表达。
+4. 修改时优先保证准确和清楚，再追求更复杂的词汇。"""
+
+
 @app.get("/")
 def index() -> object:
     return send_from_directory(app.static_folder, "index.html")
@@ -98,6 +169,9 @@ def grade() -> object:
     if not successes:
         return jsonify({"error": "All teacher calls failed.", "failures": failures}), 502
 
+    aggregate = aggregate_results([item["result"] for item in successes])
+    guidance = build_writing_guidance(essay_text, topic, objective, aggregate)
+
     return jsonify(
         {
             "essay": {
@@ -108,7 +182,8 @@ def grade() -> object:
             "objective": objective,
             "results": successes,
             "failures": failures,
-            "aggregate": aggregate_results([item["result"] for item in successes]),
+            "aggregate": aggregate,
+            "guidance": guidance,
         }
     )
 

@@ -209,6 +209,14 @@ function criteriaTable(criteria, includeFeedback = false) {
   `;
 }
 
+function seedGuidance(payload) {
+  state.chatHistory = [{
+    role: "assistant",
+    content: payload.guidance || "已完成评分。你可以继续追问某一段怎么改、某个维度为什么扣分，或让我给出示范改写。",
+  }];
+  renderChat();
+}
+
 function renderResults(payload) {
   state.lastResult = payload;
   if (payload.objective) {
@@ -240,20 +248,11 @@ function renderResults(payload) {
         </div>
         <span class="score-pill">${escapeHtml(item.result.overall_score)}</span>
       </div>
-      <p>${escapeHtml(item.result.summary || "")}</p>
-      <p>${escapeHtml(item.result.overall_judgment || "")}</p>
-      ${criteriaTable(item.result.criteria, true)}
-      <p><strong>全局建议：</strong>${escapeHtml((item.result.global_suggestions || []).join("；"))}</p>
+      ${criteriaTable(item.result.criteria, false)}
     </article>
   `).join("");
 
-  if (!state.chatHistory.length) {
-    state.chatHistory = [{
-      role: "assistant",
-      content: "我已经读完并完成七维度评分。你可以继续问我某一段怎么改、某个维度为什么扣分，或让我给出示范改写。",
-    }];
-    renderChat();
-  }
+  seedGuidance(payload);
 }
 
 async function loadStudyConfig() {
@@ -322,7 +321,7 @@ async function gradeEssay() {
       throw new Error([payload.error, payload.detail, failures].filter(Boolean).join("：") || "评分失败");
     }
     renderResults(payload);
-    setTab("subjective");
+    setTab("chat");
   } catch (error) {
     showError(error.message);
   } finally {
