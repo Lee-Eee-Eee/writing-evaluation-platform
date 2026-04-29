@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Method Teacher",
+    "base_url": "mock",
+    "model": "mock-grader",
+    "api_key_env": "",
+    "temperature": 1.0,
+    "max_tokens": 400,
+    "system_prompt": "You are an English essay scorer. Score only. Return compact JSON only, with the seven rubric scores and an optional one-sentence summary.",
+    "extra_body": ""
+  },
+  {
+    "name": "Constructive Teacher",
+    "base_url": "mock",
+    "model": "mock-grader",
+    "api_key_env": "",
+    "temperature": 1.0,
+    "max_tokens": 400,
+    "system_prompt": "You are an English essay scorer. Score only. Return compact JSON only, with the seven rubric scores and an optional one-sentence summary.",
+    "extra_body": ""
+  }
+]

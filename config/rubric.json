@@ -1,0 +1,67 @@
+{
+  "title": "Herbold et al. (2023) aligned essay rubric",
+  "score_range": {
+    "min": 0,
+    "max": 6,
+    "step": 0.5
+  },
+  "criteria": [
+    {
+      "key": "topic_and_completeness",
+      "label_zh": "主题与完整性",
+      "label_en": "Topic and completeness",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How well the essay addresses the assigned topic and develops a sufficiently complete response."
+    },
+    {
+      "key": "logic_and_composition",
+      "label_zh": "逻辑与构思",
+      "label_en": "Logic and composition",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How coherent the argument is, including structure, paragraphing, and overall flow."
+    },
+    {
+      "key": "expressiveness_and_comprehensibility",
+      "label_zh": "表达与理解性",
+      "label_en": "Expressiveness and comprehensibility",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How clearly and effectively ideas are expressed and how easy the essay is to understand."
+    },
+    {
+      "key": "language_mastery",
+      "label_zh": "语言驾驭力",
+      "label_en": "Language mastery",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How well the writer controls grammar, syntax, and general language use."
+    },
+    {
+      "key": "complexity",
+      "label_zh": "复杂度",
+      "label_en": "Complexity",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How sophisticated the thinking and language are, including sentence variation and argumentative depth."
+    },
+    {
+      "key": "vocabulary_and_text_linking",
+      "label_zh": "词汇与文本衔接",
+      "label_en": "Vocabulary and text linking",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How rich and appropriate the vocabulary is and how well the text uses linking expressions and cohesion."
+    },
+    {
+      "key": "language_constructs",
+      "label_zh": "语言结构",
+      "label_en": "Language constructs",
+      "min_score": 0,
+      "max_score": 6,
+      "definition_en": "How effectively the essay uses sentence patterns and grammatical constructions."
+    }
+  ]
+}
+
