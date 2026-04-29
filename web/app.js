@@ -70,6 +70,20 @@ function clearError() {
   nodes.errorBanner.classList.add("hidden");
 }
 
+async function readJsonResponse(response) {
+  const text = await response.text();
+  const contentType = response.headers.get("content-type") || "";
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    const preview = text.replace(/\s+/g, " ").trim().slice(0, 180);
+    const kind = contentType.includes("text/html") || preview.startsWith("<")
+      ? "接口返回了 HTML，通常意味着后端发生 500 错误、接口路径不匹配，或部署服务还没更新。"
+      : "接口返回的内容不是合法 JSON。";
+    throw new Error(`${kind} HTTP ${response.status}. ${preview}`);
+  }
+}
+
 function loadStoredTeachers() {
   return safeJsonParse(localStorage.getItem(STORAGE_KEY), null);
 }
@@ -244,10 +258,11 @@ function renderResults(payload) {
 
 async function loadStudyConfig() {
   const response = await fetch("/api/study-config");
+  const payload = await readJsonResponse(response);
   if (!response.ok) {
-    throw new Error("无法加载研究配置。");
+    throw new Error(payload.error || "无法加载研究配置。");
   }
-  state.studyConfig = await response.json();
+  state.studyConfig = payload;
   restoreTeachers();
   renderObjectiveDefinitions();
 }
@@ -269,9 +284,9 @@ async function analyzeObjective() {
   nodes.objectiveButton.textContent = "分析中...";
   try {
     const response = await fetch("/api/objective-analysis", { method: "POST", body: formData });
-    const payload = await response.json();
+    const payload = await readJsonResponse(response);
     if (!response.ok) {
-      throw new Error(payload.error || "客观分析失败");
+      throw new Error([payload.error, payload.detail].filter(Boolean).join("：") || "客观分析失败");
     }
     renderObjective(payload);
     setTab("objective");
@@ -299,9 +314,12 @@ async function gradeEssay() {
 
   try {
     const response = await fetch("/api/grade", { method: "POST", body: formData });
-    const payload = await response.json();
+    const payload = await readJsonResponse(response);
     if (!response.ok) {
-      throw new Error(payload.error || "评分失败");
+      const failures = Array.isArray(payload.failures)
+        ? payload.failures.map((item) => `${item.teacher}: ${item.error}`).join("；")
+        : "";
+      throw new Error([payload.error, payload.detail, failures].filter(Boolean).join("：") || "评分失败");
     }
     renderResults(payload);
     setTab("subjective");
@@ -375,9 +393,9 @@ async function sendChat() {
         history: state.chatHistory.slice(0, -1),
       }),
     });
-    const payload = await response.json();
+    const payload = await readJsonResponse(response);
     if (!response.ok) {
-      throw new Error(payload.error || "聊天失败");
+      throw new Error([payload.error, payload.detail].filter(Boolean).join("：") || "聊天失败");
     }
     state.chatHistory.push({ role: "assistant", content: payload.reply });
     renderChat();

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
+from werkzeug.exceptions import HTTPException
 
 from essay_benchmark.grading import aggregate_results, chat_with_teacher, grade_essay
 from essay_benchmark.objective_features import OBJECTIVE_METRICS, compute_objective_features
@@ -15,6 +16,20 @@ from essay_benchmark.study import (
 from essay_benchmark.text_utils import read_text_bytes, word_count
 
 app = Flask(__name__, static_folder="web", static_url_path="")
+
+
+@app.errorhandler(Exception)
+def handle_exception(exc: Exception) -> object:
+    if not request.path.startswith("/api/"):
+        if isinstance(exc, HTTPException):
+            return exc
+        raise exc
+
+    if isinstance(exc, HTTPException):
+        return jsonify({"error": exc.description, "status": exc.code}), exc.code
+
+    app.logger.exception("Unhandled API error")
+    return jsonify({"error": "服务器内部错误，请查看 Render 日志或本地控制台。", "detail": str(exc)}), 500
 
 
 def _load_study_config() -> dict:
@@ -56,7 +71,11 @@ def grade() -> object:
     if not isinstance(teachers, list) or not teachers:
         return jsonify({"error": "Please provide at least one teacher configuration."}), 400
 
-    objective = compute_objective_features(essay_text)
+    try:
+        objective = compute_objective_features(essay_text)
+    except Exception as exc:
+        app.logger.exception("Objective feature computation failed")
+        return jsonify({"error": "客观特征计算失败。", "detail": str(exc)}), 500
     successes = []
     failures = []
     for teacher in teachers:
@@ -73,7 +92,7 @@ def grade() -> object:
                     "result": result,
                 }
             )
-        except ProviderError as exc:
+        except (ProviderError, KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
             failures.append({"teacher": name, "error": str(exc)})
 
     if not successes:
@@ -104,7 +123,13 @@ def objective_analysis() -> object:
     if not essay_text:
         return jsonify({"error": "No essay text was provided."}), 400
 
-    return jsonify({"essay": {"word_count": word_count(essay_text), "text": essay_text}, "objective": compute_objective_features(essay_text)})
+    try:
+        objective = compute_objective_features(essay_text)
+    except Exception as exc:
+        app.logger.exception("Objective feature computation failed")
+        return jsonify({"error": "客观特征计算失败。", "detail": str(exc)}), 500
+
+    return jsonify({"essay": {"word_count": word_count(essay_text), "text": essay_text}, "objective": objective})
 
 
 @app.post("/api/chat")
