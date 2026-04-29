@@ -328,16 +328,13 @@ button:disabled {
   margin: 0 0 8px;
 }
 
-.criteria-table,
-.reference-table {
+.criteria-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .criteria-table th,
-.criteria-table td,
-.reference-table th,
-.reference-table td {
+.criteria-table td {
   padding: 10px 8px;
   text-align: left;
   border-bottom: 1px solid var(--line);

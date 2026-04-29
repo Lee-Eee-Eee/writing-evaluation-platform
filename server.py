@@ -9,9 +9,6 @@ from essay_benchmark.grading import aggregate_results, chat_with_teacher, grade_
 from essay_benchmark.objective_features import OBJECTIVE_METRICS, compute_objective_features
 from essay_benchmark.openai_compatible import ProviderError
 from essay_benchmark.study import (
-    ROOT_DIR,
-    load_reference_stats,
-    load_representative_topics,
     load_rubric,
     load_teacher_presets,
 )
@@ -21,24 +18,10 @@ app = Flask(__name__, static_folder="web", static_url_path="")
 
 
 def _load_study_config() -> dict:
-    topics = []
-    for item in load_representative_topics():
-        topics.append(
-            {
-                "id": item["id"],
-                "file": item["file"],
-                "topic": item["topic"],
-                "student_overall": item["student_overall"],
-                "student_word_count": item["student_word_count"],
-            }
-        )
-
     return {
         "rubric": load_rubric(),
         "objective_metrics": OBJECTIVE_METRICS,
-        "reference_stats": load_reference_stats(),
         "teacher_presets": load_teacher_presets(),
-        "representative_topics": topics,
     }
 
 
@@ -107,7 +90,6 @@ def grade() -> object:
             "results": successes,
             "failures": failures,
             "aggregate": aggregate_results([item["result"] for item in successes]),
-            "reference_stats": load_reference_stats(),
         }
     )
 

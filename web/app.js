@@ -27,7 +27,6 @@ const nodes = {
   objectiveResults: document.getElementById("objectiveResults"),
   resultMeta: document.getElementById("resultMeta"),
   aggregateCard: document.getElementById("aggregateCard"),
-  referenceTableWrap: document.getElementById("referenceTableWrap"),
   teacherResults: document.getElementById("teacherResults"),
   errorBanner: document.getElementById("errorBanner"),
   chatMessages: document.getElementById("chatMessages"),
@@ -196,42 +195,6 @@ function criteriaTable(criteria, includeFeedback = false) {
   `;
 }
 
-function renderReferenceTable(referenceStats, aggregate) {
-  const headers = state.studyConfig.rubric.criteria;
-  const rows = Object.entries(referenceStats).map(([name, stats]) => `
-    <tr>
-      <td>${escapeHtml(name)}</td>
-      <td>${escapeHtml(stats.overall_score)}</td>
-      ${headers.map((criterion) => `<td>${escapeHtml(stats[criterion.key])}</td>`).join("")}
-    </tr>
-  `).join("");
-
-  const aggregateRow = `
-    <tr>
-      <td>当前评分均值</td>
-      <td>${escapeHtml(aggregate.overall_score)}</td>
-      ${headers.map((criterion) => {
-        const match = aggregate.criteria.find((item) => item.key === criterion.key);
-        return `<td>${match ? escapeHtml(match.score) : "-"}</td>`;
-      }).join("")}
-    </tr>
-  `;
-
-  nodes.referenceTableWrap.innerHTML = `
-    <table class="reference-table">
-      <thead>
-        <tr>
-          <th>来源</th>
-          <th>总均分</th>
-          ${headers.map((criterion) => `<th>${escapeHtml(criterion.label_zh)}</th>`).join("")}
-        </tr>
-      </thead>
-      <tbody>${aggregateRow}${rows}</tbody>
-    </table>
-  `;
-  nodes.referenceTableWrap.classList.remove("hidden");
-}
-
 function renderResults(payload) {
   state.lastResult = payload;
   if (payload.objective) {
@@ -253,7 +216,6 @@ function renderResults(payload) {
     ${criteriaTable(payload.aggregate.criteria, false)}
   `;
   nodes.aggregateCard.classList.remove("hidden");
-  renderReferenceTable(payload.reference_stats, payload.aggregate);
 
   nodes.teacherResults.innerHTML = payload.results.map((item) => `
     <article class="result-card">
